@@ -1,0 +1,17 @@
+{
+  "tasks": {
+    "dev": "deno run --allow-all server.ts",
+    "build": "esbuild src/main.ts --bundle --outfile=dist/bundle.js --watch"
+  },
+  "imports": {
+    "@std/assert": "jsr:@std/assert@1",
+    "esbuild": "npm:esbuild@^0.24.2"
+  },
+  "compilerOptions": {
+    "lib": [
+      "deno.window",
+      "esnext",
+      "dom"
+    ]
+  }
+}
