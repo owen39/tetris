@@ -1,5 +1,5 @@
-const IS_DEV_MODE = true
-const MS_PER_UPDATE = 1000 / 60
+const IS_DEV_MODE = false
+const MS_PER_UPDATE = 1000 / 1000
 
 type Color =
     | 'red'
@@ -105,6 +105,7 @@ class GameBoard {
     context: CanvasRenderingContext2D
     activeShape: Shape
     gameSpeed: number = 1000
+    points: number = 0
     keyMap: {
         [key: string]: boolean
     } = {
@@ -326,6 +327,14 @@ class GameBoard {
         for (let i = 0; i < toAdd; i++) {
             this.grid.unshift(Array.from({ length: this.cols }).map(() => 0))
         }
+
+        if (toAdd === 1) {
+            this.points += 800
+        } else if (toAdd === 2) {
+            this.points += 1200
+        } else if (toAdd > 0) {
+            this.points += 1800
+        }
     }
 
     checkForGameOver() {
@@ -338,6 +347,7 @@ class GameBoard {
         this.clearBoard()
         this.renderActiveShape()
         this.renderBoard()
+        this.renderScore()
     }
 
     clearBoard() {
@@ -414,6 +424,13 @@ class GameBoard {
                 15
             )
         }
+    }
+
+    renderScore() {
+        this.context.font = '24px san-serif'
+        this.context.fillStyle = 'black'
+        this.context.textAlign = 'left'
+        this.context.fillText(String(`Score: ${this.points}`), 0, 20)
     }
 }
 
