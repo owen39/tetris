@@ -17,6 +17,94 @@ canvas.width = CANVAS_WIDTH
 canvas.height = CANVAS_HEIGHT
 const context = canvas.getContext('2d')
 
+class Shape {
+    matrix: number[][]
+    anchor: {
+        row: number
+        col: number
+    } = {
+        row: 0,
+        col: 0,
+    }
+
+    constructor(matrix: number[][]) {
+        this.matrix = matrix
+    }
+
+    rotate() {
+        // Transpose
+        const rowCount = this.matrix[0].length
+        const result: number[][] = Array.from({ length: rowCount }).map(
+            () => []
+        )
+        for (let i = 0; i < this.matrix.length; i++) {
+            for (let j = 0; j < this.matrix[i].length; j++) {
+                result[j].push(this.matrix[i][j])
+            }
+        }
+
+        // Reverse
+        for (let i = 0; i < result.length; i++) {
+            result[i].reverse()
+        }
+
+        this.matrix = result
+    }
+}
+const myShape = new Shape([
+    [0, 0, 0],
+    [0, 1, 1],
+    [1, 1, 0],
+])
+
+const keyMap = {
+    up: false,
+    down: false,
+    left: false,
+    right: false,
+    space: false,
+}
+
+document.addEventListener('keydown', (event) => {
+    switch (event.key) {
+        case 'ArrowUp':
+            keyMap.up = true
+            break
+        case 'ArrowDown':
+            keyMap.down = true
+            break
+        case 'ArrowLeft':
+            keyMap.left = true
+            break
+        case 'ArrowRight':
+            keyMap.right = true
+            break
+        case 'Space':
+            keyMap.space = true
+            break
+    }
+})
+
+document.addEventListener('keyup', (event) => {
+    switch (event.key) {
+        case 'ArrowUp':
+            keyMap.up = false
+            break
+        case 'ArrowDown':
+            keyMap.down = false
+            break
+        case 'ArrowLeft':
+            keyMap.left = false
+            break
+        case 'ArrowRight':
+            keyMap.right = false
+            break
+        case 'Space':
+            keyMap.space = false
+            break
+    }
+})
+
 function run() {
     let previous = 0
     let lag = 0
@@ -25,8 +113,6 @@ function run() {
         lag += current - previous
         previous = current
 
-        // User input
-        processInput()
         // Update game logic
         while (lag >= MS_PER_UPDATE) {
             updateGame()
@@ -42,10 +128,23 @@ function run() {
     loop()
 }
 
-function processInput() {}
-
 function updateGame() {
-    // console.log('updating game')
+    if (keyMap.left) {
+        myShape.anchor.col -= 1
+        keyMap.left = false
+    }
+    if (keyMap.right) {
+        myShape.anchor.col += 1
+        keyMap.right = false
+    }
+    if (keyMap.up) {
+        myShape.rotate()
+        keyMap.up = false
+    }
+    if (keyMap.down) {
+        myShape.anchor.row += 1
+        keyMap.down = false
+    }
 }
 
 function render() {
@@ -53,7 +152,13 @@ function render() {
         return
     }
 
+    clearBoard(context)
+    renderShape(context, myShape)
     renderBoard(context)
+}
+
+function clearBoard(context: CanvasRenderingContext2D) {
+    context.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
 }
 
 function renderBoard(context: CanvasRenderingContext2D) {
@@ -124,41 +229,6 @@ function fillGrid(context: CanvasRenderingContext2D, row: number, col: number) {
         GRID_LENGTH,
         GRID_LENGTH
     )
-}
-
-class Shape {
-    matrix: number[][]
-    anchor: {
-        row: number
-        col: number
-    } = {
-        row: 0,
-        col: 0,
-    }
-
-    constructor(matrix: number[][]) {
-        this.matrix = matrix
-    }
-
-    rotate() {
-        // Transpose
-        const rowCount = this.matrix[0].length
-        const result: number[][] = Array.from({ length: rowCount }).map(
-            () => []
-        )
-        for (let i = 0; i < this.matrix.length; i++) {
-            for (let j = 0; j < this.matrix[i].length; j++) {
-                result[j].push(this.matrix[i][j])
-            }
-        }
-
-        // Reverse
-        for (let i = 0; i < result.length; i++) {
-            result[i].reverse()
-        }
-
-        this.matrix = result
-    }
 }
 
 run()
