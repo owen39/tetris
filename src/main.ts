@@ -1,8 +1,102 @@
 const IS_DEV_MODE = true
 const MS_PER_UPDATE = 1000 / 60
 
+type Color =
+    | 'red'
+    | 'cyan'
+    | 'yellow'
+    | 'purple'
+    | 'green'
+    | 'blue'
+    | 'orange'
+    | 'grey'
+type Cell = 0 | Color
+type Matrix = Cell[][]
+
+function createShapeType(matrix: number[][], color: Color): Matrix {
+    const newMatrix: Matrix = Array.from({ length: matrix.length }).map(() =>
+        Array.from({ length: matrix[0].length }).map(() => 0)
+    )
+
+    forEachCell(matrix, (cell, row, col) => {
+        if (cell) {
+            newMatrix[row][col] = color
+        }
+    })
+
+    return newMatrix
+}
+
+const shapeMatrices: Matrix[] = [
+    createShapeType(
+        [
+            [0, 0, 0, 0],
+            [1, 1, 1, 1],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0],
+        ],
+        'cyan'
+    ),
+    createShapeType(
+        [
+            [1, 0, 0],
+            [1, 1, 1],
+            [0, 0, 0],
+        ],
+        'blue'
+    ),
+    createShapeType(
+        [
+            [0, 0, 1],
+            [1, 1, 1],
+            [0, 0, 0],
+        ],
+        'orange'
+    ),
+    createShapeType(
+        [
+            [1, 1],
+            [1, 1],
+        ],
+        'yellow'
+    ),
+    createShapeType(
+        [
+            [0, 1, 1],
+            [1, 1, 0],
+            [0, 0, 0],
+        ],
+        'green'
+    ),
+    createShapeType(
+        [
+            [0, 1, 0],
+            [1, 1, 1],
+            [0, 0, 0],
+        ],
+        'purple'
+    ),
+
+    createShapeType(
+        [
+            [1, 1, 0],
+            [0, 1, 1],
+            [0, 0, 0],
+        ],
+        'red'
+    ),
+]
+
+function generateNewShape(): Shape {
+    const matrix =
+        shapeMatrices[Math.floor(Math.random() * shapeMatrices.length)]
+    return new Shape(matrix)
+}
+
 class GameBoard {
-    grid: number[][]
+    private downTimer = 0
+
+    grid: Matrix
     rows: number
     cols: number
     cellWidth: number
@@ -10,7 +104,10 @@ class GameBoard {
     canvas: HTMLCanvasElement
     context: CanvasRenderingContext2D
     activeShape: Shape
-    keyMap = {
+    gameSpeed: number = 1000
+    keyMap: {
+        [key: string]: boolean
+    } = {
         up: false,
         down: false,
         left: false,
@@ -51,13 +148,10 @@ class GameBoard {
         this.canvas.width = this.cellWidth * this.cols
         this.canvas.height = this.cellWidth * this.rows
 
-        this.activeShape = new Shape([
-            [0, 0, 0],
-            [0, 1, 1],
-            [1, 1, 0],
-        ])
+        this.activeShape = generateNewShape()
 
         this.registerControl()
+        this.downTimer = performance.now()
     }
 
     registerControl() {
@@ -126,7 +220,6 @@ class GameBoard {
     }
 
     updateGame() {
-        console.log('updateGame')
         if (this.keyMap.left && !this.hasCollision('left')) {
             this.activeShape.anchor.col -= 1
             this.keyMap.left = false
@@ -143,9 +236,25 @@ class GameBoard {
             this.activeShape.anchor.row += 1
             this.keyMap.down = false
         }
+
+        Object.keys((key: string) => {
+            this.keyMap[key] = false
+        })
+
+        if (performance.now() - this.gameSpeed > this.downTimer) {
+            if (this.hasCollision('down')) {
+                this.storeShape()
+                this.activeShape = generateNewShape()
+            } else {
+                this.activeShape.anchor.row += 1
+            }
+
+            this.downTimer = performance.now()
+        }
     }
 
     hasCollision(direction: 'left' | 'down' | 'right' | 'rotate') {
+        let collided = false
         let projectedMatrix = this.activeShape.matrix
         let projectedAnchor = this.activeShape.anchor
 
@@ -173,20 +282,30 @@ class GameBoard {
                 break
         }
 
-        for (let row = 0; row < projectedMatrix.length; row++) {
-            for (let col = 0; col < projectedMatrix[0].length; col++) {
-                if (projectedMatrix[row][col] === 0) continue
-
-                if (
-                    this.grid[projectedAnchor.row + row]?.[
-                        projectedAnchor.col + col
-                    ] !== 0
-                )
-                    return true
+        console.log('projectedAnchor', projectedAnchor)
+        console.log('projectedMatrix', projectedMatrix)
+        forEachCell(projectedMatrix, (cell, row, col) => {
+            if (
+                cell &&
+                this.grid[projectedAnchor.row + row]?.[
+                    projectedAnchor.col + col
+                ] !== 0
+            ) {
+                collided = true
             }
-        }
+        })
 
-        return false
+        return collided
+    }
+
+    storeShape() {
+        forEachCell(this.activeShape.matrix, (cell, row, col) => {
+            if (cell) {
+                this.grid[this.activeShape.anchor.row + row][
+                    this.activeShape.anchor.col + col
+                ] = cell
+            }
+        })
     }
 
     render() {
@@ -200,20 +319,26 @@ class GameBoard {
     }
 
     renderBoard() {
-        this.context.strokeStyle = 'gray'
         this.context.lineWidth = 1
-        for (let row = 0; row < this.rows; row++) {
-            for (let col = 0; col < this.cols; col++) {
-                if (!this.grid[row][col]) {
-                    this.context.strokeRect(
-                        col * this.cellWidth,
-                        row * this.cellWidth,
-                        this.cellWidth,
-                        this.cellWidth
-                    )
-                }
+        forEachCell(this.grid, (cell, row, col) => {
+            if (cell) {
+                this.context.fillStyle = cell
+                this.context.fillRect(
+                    col * this.cellWidth,
+                    row * this.cellWidth,
+                    this.cellWidth,
+                    this.cellWidth
+                )
             }
-        }
+
+            this.context.strokeStyle = 'gray'
+            this.context.strokeRect(
+                col * this.cellWidth,
+                row * this.cellWidth,
+                this.cellWidth,
+                this.cellWidth
+            )
+        })
 
         if (IS_DEV_MODE) {
             for (let row = 0; row < this.rows + 1; row++) {
@@ -240,25 +365,25 @@ class GameBoard {
     }
 
     renderActiveShape() {
-        this.context.fillStyle = 'black'
-        for (let i = 0; i < this.activeShape.matrix.length; i++) {
-            for (let j = 0; j < this.activeShape.matrix[i].length; j++) {
-                if (this.activeShape.matrix[i][j]) {
-                    fillCell(
-                        this.context,
-                        this.activeShape.anchor.row + i,
-                        this.activeShape.anchor.col + j,
-                        this.cellWidth
-                    )
-                }
+        forEachCell(this.activeShape.matrix, (cell, row, col) => {
+            if (cell) {
+                fillCell(
+                    this.context,
+                    this.activeShape.anchor.row + row,
+                    this.activeShape.anchor.col + col,
+                    this.cellWidth,
+                    cell
+                )
             }
-        }
+        })
 
         if (IS_DEV_MODE) {
             this.context.fillStyle = 'red'
             this.context.fillRect(
-                this.activeShape.anchor.col * this.cellWidth + this.cellWidth / 4,
-                this.activeShape.anchor.row * this.cellWidth + this.cellWidth / 4,
+                this.activeShape.anchor.col * this.cellWidth +
+                    this.cellWidth / 4,
+                this.activeShape.anchor.row * this.cellWidth +
+                    this.cellWidth / 4,
                 15,
                 15
             )
@@ -267,7 +392,7 @@ class GameBoard {
 }
 
 class Shape {
-    matrix: number[][]
+    matrix: Matrix
     anchor: {
         row: number
         col: number
@@ -276,7 +401,7 @@ class Shape {
         col: 0,
     }
 
-    constructor(matrix: number[][]) {
+    constructor(matrix: Matrix) {
         this.matrix = matrix
     }
 
@@ -285,10 +410,10 @@ class Shape {
     }
 }
 
-function getRotatedMatrix(matrix: number[][]): number[][] {
+function getRotatedMatrix(matrix: Matrix): Matrix {
     // Transpose
     const rowCount = matrix[0].length
-    const result: number[][] = Array.from({ length: rowCount }).map(() => [])
+    const result: Matrix = Array.from({ length: rowCount }).map(() => [])
     for (let i = 0; i < matrix.length; i++) {
         for (let j = 0; j < matrix[i].length; j++) {
             result[j].push(matrix[i][j])
@@ -303,13 +428,26 @@ function getRotatedMatrix(matrix: number[][]): number[][] {
     return result
 }
 
-function fillCell(context: CanvasRenderingContext2D, row: number, col: number, cellWidth: number) {
-    context.fillRect(
-        col * cellWidth,
-        row * cellWidth,
-        cellWidth,
-        cellWidth
-    )
+function fillCell(
+    context: CanvasRenderingContext2D,
+    row: number,
+    col: number,
+    cellWidth: number,
+    color: Color
+) {
+    context.fillStyle = color
+    context.fillRect(col * cellWidth, row * cellWidth, cellWidth, cellWidth)
+}
+
+function forEachCell<T>(
+    matrix: T[][],
+    callback: (value: T, row: number, col: number) => void
+) {
+    for (let row = 0; row < matrix.length; row++) {
+        for (let col = 0; col < matrix[0].length; col++) {
+            callback(matrix[row][col], row, col)
+        }
+    }
 }
 
 const gameBoard = new GameBoard({
