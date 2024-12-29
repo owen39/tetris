@@ -156,6 +156,7 @@ class GameBoard {
 
     registerControl() {
         document.addEventListener('keydown', (event) => {
+            console.log(event.key.length)
             switch (event.key) {
                 case 'ArrowUp':
                     this.keyMap.up = true
@@ -169,7 +170,7 @@ class GameBoard {
                 case 'ArrowRight':
                     this.keyMap.right = true
                     break
-                case 'Space':
+                case ' ':
                     this.keyMap.space = true
                     break
             }
@@ -236,12 +237,20 @@ class GameBoard {
             this.activeShape.anchor.row += 1
             this.keyMap.down = false
         }
+        if (this.keyMap.space) {
+            console.log('trying to space')
+            while (!this.hasCollision('down')) {
+                this.activeShape.anchor.row += 1
+            }
+            this.keyMap.space = false
+            this.downTimer = -this.gameSpeed // Run down clock immediately
+        }
 
         Object.keys((key: string) => {
             this.keyMap[key] = false
         })
 
-        if (performance.now() - this.gameSpeed > this.downTimer) {
+        if (performance.now() - this.downTimer > this.gameSpeed) {
             if (this.hasCollision('down')) {
                 this.storeShape()
                 this.clearRows()
