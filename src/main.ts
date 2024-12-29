@@ -156,7 +156,6 @@ class GameBoard {
 
     registerControl() {
         document.addEventListener('keydown', (event) => {
-            console.log(event.key.length)
             switch (event.key) {
                 case 'ArrowUp':
                     this.keyMap.up = true
@@ -238,7 +237,6 @@ class GameBoard {
             this.keyMap.down = false
         }
         if (this.keyMap.space) {
-            console.log('trying to space')
             while (!this.hasCollision('down')) {
                 this.activeShape.anchor.row += 1
             }
@@ -255,6 +253,7 @@ class GameBoard {
                 this.storeShape()
                 this.clearRows()
                 this.activeShape = generateNewShape()
+                this.checkForGameOver()
             } else {
                 this.activeShape.anchor.row += 1
             }
@@ -263,7 +262,7 @@ class GameBoard {
         }
     }
 
-    hasCollision(direction: 'left' | 'down' | 'right' | 'rotate') {
+    hasCollision(direction: 'left' | 'down' | 'right' | 'rotate' | 'current') {
         let collided = false
         let projectedMatrix = this.activeShape.matrix
         let projectedAnchor = this.activeShape.anchor
@@ -326,6 +325,12 @@ class GameBoard {
         }
         for (let i = 0; i < toAdd; i++) {
             this.grid.unshift(Array.from({ length: this.cols }).map(() => 0))
+        }
+    }
+
+    checkForGameOver() {
+        if (this.hasCollision('current')) {
+            alert('Game Over!')
         }
     }
 
