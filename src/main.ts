@@ -244,6 +244,7 @@ class GameBoard {
         if (performance.now() - this.gameSpeed > this.downTimer) {
             if (this.hasCollision('down')) {
                 this.storeShape()
+                this.clearRows()
                 this.activeShape = generateNewShape()
             } else {
                 this.activeShape.anchor.row += 1
@@ -282,8 +283,6 @@ class GameBoard {
                 break
         }
 
-        console.log('projectedAnchor', projectedAnchor)
-        console.log('projectedMatrix', projectedMatrix)
         forEachCell(projectedMatrix, (cell, row, col) => {
             if (
                 cell &&
@@ -306,6 +305,19 @@ class GameBoard {
                 ] = cell
             }
         })
+    }
+
+    clearRows() {
+        let toAdd = 0
+        for (let row = this.grid.length - 1; row >= 0; row--) {
+            if (this.grid[row].every((cell) => cell)) {
+                this.grid.splice(row, 1)
+                toAdd++
+            }
+        }
+        for (let i = 0; i < toAdd; i++) {
+            this.grid.unshift(Array.from({ length: this.cols }).map(() => 0))
+        }
     }
 
     render() {
@@ -398,7 +410,7 @@ class Shape {
         col: number
     } = {
         row: 0,
-        col: 0,
+        col: 3,
     }
 
     constructor(matrix: Matrix) {
