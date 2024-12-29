@@ -8,7 +8,7 @@ const IS_DEV_MODE = true
 
 const MS_PER_UPDATE = 1000 / 60
 
-const array = Array.from({ length: ROWS }).map(() =>
+const grid = Array.from({ length: ROWS }).map(() =>
     Array.from({ length: COLS }).map(() => 0)
 )
 
@@ -32,25 +32,74 @@ class Shape {
     }
 
     rotate() {
-        // Transpose
-        const rowCount = this.matrix[0].length
-        const result: number[][] = Array.from({ length: rowCount }).map(
-            () => []
-        )
-        for (let i = 0; i < this.matrix.length; i++) {
-            for (let j = 0; j < this.matrix[i].length; j++) {
-                result[j].push(this.matrix[i][j])
-            }
-        }
-
-        // Reverse
-        for (let i = 0; i < result.length; i++) {
-            result[i].reverse()
-        }
-
-        this.matrix = result
+        this.matrix = getRotatedMatrix(this.matrix)
     }
 }
+
+function getRotatedMatrix(matrix: number[][]): number[][] {
+    // Transpose
+    const rowCount = matrix[0].length
+    const result: number[][] = Array.from({ length: rowCount }).map(() => [])
+    for (let i = 0; i < matrix.length; i++) {
+        for (let j = 0; j < matrix[i].length; j++) {
+            result[j].push(matrix[i][j])
+        }
+    }
+
+    // Reverse
+    for (let i = 0; i < result.length; i++) {
+        result[i].reverse()
+    }
+
+    return result
+}
+
+function hasCollision(
+    shape: Shape,
+    direction: 'left' | 'down' | 'right' | 'rotate'
+): boolean {
+    let projectedMatrix = shape.matrix
+    let projectedAnchor = shape.anchor
+
+    switch (direction) {
+        case 'left':
+            projectedAnchor = {
+                row: shape.anchor.row,
+                col: shape.anchor.col - 1,
+            }
+            break
+        case 'down':
+            projectedAnchor = {
+                row: shape.anchor.row + 1,
+                col: shape.anchor.col,
+            }
+            break
+        case 'right':
+            projectedAnchor = {
+                row: shape.anchor.row,
+                col: shape.anchor.col + 1,
+            }
+            break
+        case 'rotate':
+            projectedMatrix = getRotatedMatrix(projectedMatrix)
+            break
+    }
+
+    for (let row = 0; row < projectedMatrix.length; row++) {
+        for (let col = 0; col < projectedMatrix[0].length; col++) {
+            if (projectedMatrix[row][col] === 0) continue
+
+            if (
+                grid[projectedAnchor.row + row]?.[projectedAnchor.col + col] !==
+                0
+            )
+                return true
+        }
+    }
+
+    return false
+}
+
 const myShape = new Shape([
     [0, 0, 0],
     [0, 1, 1],
@@ -129,19 +178,19 @@ function run() {
 }
 
 function updateGame() {
-    if (keyMap.left) {
+    if (keyMap.left && !hasCollision(myShape, 'left')) {
         myShape.anchor.col -= 1
         keyMap.left = false
     }
-    if (keyMap.right) {
+    if (keyMap.right && !hasCollision(myShape, 'right')) {
         myShape.anchor.col += 1
         keyMap.right = false
     }
-    if (keyMap.up) {
+    if (keyMap.up && !hasCollision(myShape, 'rotate')) {
         myShape.rotate()
         keyMap.up = false
     }
-    if (keyMap.down) {
+    if (keyMap.down && !hasCollision(myShape, 'down')) {
         myShape.anchor.row += 1
         keyMap.down = false
     }
@@ -166,7 +215,7 @@ function renderBoard(context: CanvasRenderingContext2D) {
     context.lineWidth = 1
     for (let row = 0; row < ROWS; row++) {
         for (let col = 0; col < COLS; col++) {
-            if (!array[row][col]) {
+            if (!grid[row][col]) {
                 context.strokeRect(
                     col * GRID_LENGTH,
                     row * GRID_LENGTH,
