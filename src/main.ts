@@ -4,6 +4,8 @@ const COLS = 10
 const CANVAS_HEIGHT = GRID_LENGTH * ROWS
 const CANVAS_WIDTH = GRID_LENGTH * COLS
 
+const IS_DEV_MODE = true
+
 const MS_PER_UPDATE = 1000 / 60
 
 const array = Array.from({ length: ROWS }).map(() =>
@@ -43,7 +45,7 @@ function run() {
 function processInput() {}
 
 function updateGame() {
-    console.log('updating game')
+    // console.log('updating game')
 }
 
 function render() {
@@ -66,15 +68,96 @@ function renderBoard(context: CanvasRenderingContext2D) {
                     GRID_LENGTH,
                     GRID_LENGTH
                 )
-            } else {
-                context.fillRect(
-                    col * GRID_LENGTH,
-                    row * GRID_LENGTH,
-                    GRID_LENGTH,
-                    GRID_LENGTH
-                )
             }
         }
+    }
+
+    if (IS_DEV_MODE) {
+        for (let row = 0; row < ROWS + 1; row++) {
+            context.font = '16px san-serif'
+            context.fillStyle = 'gray'
+            context.textAlign = 'center'
+            context.fillText(
+                String(row - 1),
+                GRID_LENGTH / 2,
+                row * GRID_LENGTH - GRID_LENGTH / 3
+            )
+        }
+        for (let col = 2; col < COLS + 1; col++) {
+            context.font = '16px san-serif'
+            context.fillStyle = 'gray'
+            context.textAlign = 'center'
+            context.fillText(
+                String(col - 1),
+                col * GRID_LENGTH - GRID_LENGTH / 2,
+                GRID_LENGTH / 1.5
+            )
+        }
+    }
+}
+
+function renderShape(context: CanvasRenderingContext2D, shape: Shape) {
+    context.fillStyle = 'black'
+    for (let i = 0; i < shape.matrix.length; i++) {
+        for (let j = 0; j < shape.matrix[i].length; j++) {
+            if (shape.matrix[i][j]) {
+                fillGrid(context, shape.anchor.row + i, shape.anchor.col + j)
+            }
+        }
+    }
+
+    if (IS_DEV_MODE) {
+        context.fillStyle = 'red'
+        context.fillRect(
+            shape.anchor.col * GRID_LENGTH + GRID_LENGTH / 4,
+            shape.anchor.row * GRID_LENGTH + GRID_LENGTH / 4,
+            15,
+            15
+        )
+    }
+}
+
+function fillGrid(context: CanvasRenderingContext2D, row: number, col: number) {
+    context.fillRect(
+        col * GRID_LENGTH,
+        row * GRID_LENGTH,
+        GRID_LENGTH,
+        GRID_LENGTH
+    )
+}
+
+class Shape {
+    matrix: number[][]
+    anchor: {
+        row: number
+        col: number
+    } = {
+        row: 0,
+        col: 0,
+    }
+
+    constructor(matrix: number[][]) {
+        this.matrix = matrix
+    }
+
+    rotate() {
+        // Transpose
+        const rowCount = this.matrix[0].length
+        const result: number[][] = Array.from({ length: rowCount }).map(
+            () => []
+        )
+        for (let i = 0; i < this.matrix.length; i++) {
+            for (let j = 0; j < this.matrix[i].length; j++) {
+                result[j].push(this.matrix[i][j])
+            }
+        }
+
+        // Reverse
+        for (let i = 0; i < result.length; i++) {
+            result[i].reverse()
+        }
+
+        this.matrix = result
     }
 }
 
